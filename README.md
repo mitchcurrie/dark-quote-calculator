@@ -16,6 +16,7 @@ GP %         = GP $ ÷ Quote ex GST
 - **$104.56** is the break-even per labour hour from the Rates Calculator (2 Nov 2026). It covers wages, super, leave, vehicles, tools and overheads, so the GP shown is what the business keeps from the job.
 - The result matches what you're left with after paying the ATO the net GST on your BAS.
 - Green means 30% GP or better, amber means under 30%, and red means the job loses money.
+- Before a quote total is typed, the bottom line shows the **quote price needed to hit 40% GP**: Job cost ÷ 0.6 × 1.1, inc GST. Change `TARGET_PCT` in `index.html` to aim for a different GP.
 
 Example: a $1,012 quote with 2.5 hours and $330 of materials gives $358.60 GP (38.98%).
 
@@ -47,6 +48,18 @@ const GST_PCT    = 10;
 ```
 
 Change the number, click **Commit changes**, and the live page updates within a minute or two. If you rework the Rates Calculator spreadsheet, put its new break-even rate here.
+
+## Lock code
+
+The calculator opens on a keypad and needs a 4-digit code. Once it's unlocked, it stays open until the app or browser tab is closed, or someone taps **Lock**. After 5 wrong tries, the keypad waits 30 seconds.
+
+The code isn't written in the page. Only its SHA-256 fingerprint is stored, in `CODE_SHA256` near the bottom of `index.html`. To change the code:
+
+1. On a Mac, open Terminal and run `printf '1234' | shasum -a 256`, putting your new code in place of `1234`.
+2. Copy the long string of letters and numbers it prints (not the `-` at the end).
+3. On GitHub, edit `index.html`, paste it over the old `CODE_SHA256` value, and commit.
+
+The lock keeps casual people out, such as a customer who sees the link. It isn't strong security: the repository is public, so someone technical could read the page's code here on GitHub or work out a 4-digit code.
 
 ## Privacy
 

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en-AU">
+<html lang="en-AU" class="locked">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -59,12 +59,49 @@ h1 span{display:block;font-size:12px;letter-spacing:.2em;text-transform:uppercas
 .gp.bad b,.results.bad h2{color:var(--bad)}
 .sub{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
 .sub b{color:var(--ink)}
+.target{margin-top:8px;padding-top:12px;border-top:1px dashed var(--line);width:100%;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:14px;font-weight:600;color:var(--muted)}
+.target b{font-family:var(--f-display);font-weight:800;font-size:28px;line-height:1.1;color:var(--copper);font-variant-numeric:tabular-nums}
+.target small{font-size:12px;font-weight:500}
 .clear{align-self:center;min-height:42px;padding:0 20px;border:1px solid var(--ground-muted);border-radius:999px;background:transparent;color:var(--ground-ink);font:600 14px var(--f-body);cursor:pointer}
 .note{margin:0;text-align:center;font-size:12px;color:var(--ground-muted)}
+.actions{display:flex;justify-content:center;gap:10px}
+
+/* lock screen */
+.locked .app{display:none}
+html:not(.locked) .lock{display:none}
+.lock{position:fixed;inset:0;z-index:50;background:var(--ground);display:flex;align-items:center;justify-content:center;overflow:auto;padding:calc(24px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.lock-in{width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.lock p{margin:0;color:var(--ground-muted);font-size:15px}
+.dots{display:flex;gap:16px;min-height:18px}
+.dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--ground-muted);transition:background .1s,border-color .1s}
+.dots i.on{background:var(--copper);border-color:var(--copper)}
+.dots.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+.err{min-height:20px;color:#FF9A90;font-size:14px;font-weight:600;text-align:center}
+.pad{display:grid;grid-template-columns:repeat(3,72px);gap:14px;justify-content:center}
+.pad button{width:72px;height:72px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:var(--ground-ink);font:700 26px var(--f-display);cursor:pointer;-webkit-user-select:none;user-select:none}
+.pad button:active{background:var(--copper);border-color:var(--copper)}
+.pad .blank{visibility:hidden}
+.pad .del{border-color:transparent;background:transparent;font:600 15px var(--f-body)}
 :focus-visible{outline:2px solid var(--copper);outline-offset:2px}
 </style>
 </head>
 <body>
+<div class="lock" id="lock" role="dialog" aria-modal="true" aria-labelledby="lock-title">
+  <div class="lock-in">
+    <h1 id="lock-title"><span>DARK Plumbing &amp; Gas</span>Quote Calculator</h1>
+    <p>Enter the code to open</p>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="err" id="err" role="alert"></div>
+    <div class="pad" id="pad">
+      <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+      <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+      <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+      <button type="button" class="blank" tabindex="-1" aria-hidden="true"></button><button type="button" data-k="0">0</button><button type="button" class="del" data-k="del" aria-label="Delete last digit">Delete</button>
+    </div>
+  </div>
+</div>
+
 <main class="app">
   <h1><span>DARK Plumbing &amp; Gas</span>Quote Calculator</h1>
 
@@ -82,9 +119,10 @@ h1 span{display:block;font-size:12px;letter-spacing:.2em;text-transform:uppercas
     <h2>Results:</h2>
     <div class="gp" id="gp-wrap">GP %: <b id="gp-pct">0.00%</b></div>
     <div class="sub">GP <b id="gp">$0.00</b> · Job cost <b id="cost">$0.00</b> <small>(ex GST)</small></div>
+    <div class="target"><span id="target-lbl">Quote price to hit 40% GP</span><b id="target">$0.00</b><small id="target-sub">Type hours and costs to see it</small></div>
   </section>
 
-  <button type="button" class="clear" id="clear">Clear</button>
+  <div class="actions"><button type="button" class="clear" id="clear">Clear</button><button type="button" class="clear" id="lockbtn">Lock</button></div>
   <p class="note" id="note"></p>
 </main>
 
@@ -95,10 +133,16 @@ h1 span{display:block;font-size:12px;letter-spacing:.2em;text-transform:uppercas
 /* ===== YOUR NUMBERS: change these, save, and upload the file again ===== */
 const BREAK_EVEN = 104.56; // cost per labour hour, from your Rates Calculator Results Dashboard (2 Nov 2026)
 const GOAL_PCT   = 30;     // GP % goal: green at or above, amber below, red if losing money
+const TARGET_PCT = 40;     // shows the quote price (inc GST) needed to hit this GP %
 const GST_PCT    = 10;     // GST rate
+
+// Lock code. This is the SHA-256 of the code, not the code itself.
+// To change it, on a Mac run:  printf '1234' | shasum -a 256   (use your new code), and paste the long result here.
+const CODE_SHA256 = 'e44396c4365bbfe1afe1a44c76d46775ab7f433e43a77ad556003d5a7d7bd1d0';
+const CODE_LENGTH = 4;
 /* ======================================================================== */
 
-const GST = GST_PCT / 100, GOAL = GOAL_PCT / 100;
+const GST = GST_PCT / 100, GOAL = GOAL_PCT / 100, TARGET = TARGET_PCT / 100;
 const ids = ['quote', 'hours', 'plant', 'trade', 'material', 'docs'];
 const $ = id => document.getElementById(id);
 const num = v => { const n = parseFloat(String(v || '').replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
@@ -111,7 +155,8 @@ function calc(v){
   const costsInc = num(v.plant) + num(v.trade) + num(v.material) + num(v.docs);
   const cost = num(v.hours) * BREAK_EVEN + costsInc / (1 + GST);
   const gp = quoteEx - cost;
-  return {quoteEx, cost, gp, pct: quoteEx > 0 ? gp / quoteEx : 0};
+  const targetInc = cost / (1 - TARGET) * (1 + GST);   // quote needed for TARGET_PCT GP
+  return {quoteEx, cost, gp, pct: quoteEx > 0 ? gp / quoteEx : 0, targetInc};
 }
 function read(){ const v = {}; ids.forEach(k => { v[k] = $(k).value; }); return v; }
 function update(){
@@ -121,11 +166,66 @@ function update(){
   $('gp-pct').textContent = (r.pct * 100).toFixed(2) + '%';
   $('gp').textContent = AUD.format(r.gp);
   $('cost').textContent = AUD.format(r.cost);
+  $('target').textContent = AUD.format(r.targetInc);
+  $('target-sub').textContent = r.cost > 0 ? 'inc GST' : 'Type hours and costs to see it';
   $('gp-wrap').className = 'gp ' + state;
   $('results').className = 'results ' + state;
   try { localStorage.setItem('dark-quote-calc', JSON.stringify(v)); } catch (e) {}
 }
 
+/* ---------- lock screen ---------- */
+const root = document.documentElement;
+const dots = $('dots'), err = $('err');
+let entry = '', fails = 0, waitUntil = 0;
+for (let i = 0; i < CODE_LENGTH; i++) dots.appendChild(document.createElement('i'));
+function drawDots(){ Array.from(dots.children).forEach((d, i) => d.classList.toggle('on', i < entry.length)); }
+async function sha256(t){
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function isUnlocked(){ try { return sessionStorage.getItem('dqc-unlocked') === CODE_SHA256; } catch (e) { return false; } }
+function openApp(){ root.classList.remove('locked'); }
+function lockApp(){
+  try { sessionStorage.removeItem('dqc-unlocked'); } catch (e) {}
+  entry = ''; drawDots(); err.textContent = '';
+  root.classList.add('locked');
+  window.scrollTo(0, 0);
+}
+async function press(k){
+  if (Date.now() < waitUntil) return;
+  if (k === 'del'){ entry = entry.slice(0, -1); drawDots(); return; }
+  if (entry.length >= CODE_LENGTH) return;
+  entry += k; drawDots(); err.textContent = '';
+  if (entry.length < CODE_LENGTH) return;
+  let ok = false;
+  try { ok = (await sha256(entry)) === CODE_SHA256; }
+  catch (e) { err.textContent = "This browser can't check the code. Open the link in Safari or Chrome."; entry = ''; drawDots(); return; }
+  if (ok){
+    try { sessionStorage.setItem('dqc-unlocked', CODE_SHA256); } catch (e) {}
+    entry = ''; drawDots(); openApp();
+    return;
+  }
+  fails++; entry = '';
+  dots.classList.remove('shake'); void dots.offsetWidth; dots.classList.add('shake');
+  setTimeout(drawDots, 300);
+  if (fails >= 5){
+    fails = 0; waitUntil = Date.now() + 30000;
+    err.textContent = 'Too many tries. Wait 30 seconds.';
+    setTimeout(() => { err.textContent = ''; }, 30000);
+  } else {
+    err.textContent = 'Wrong code';
+  }
+}
+$('pad').addEventListener('click', e => { const b = e.target.closest('button[data-k]'); if (b) press(b.dataset.k); });
+document.addEventListener('keydown', e => {
+  if (!root.classList.contains('locked')) return;
+  if (/^[0-9]$/.test(e.key)){ e.preventDefault(); press(e.key); }
+  else if (e.key === 'Backspace'){ e.preventDefault(); press('del'); }
+});
+$('lockbtn').addEventListener('click', lockApp);
+if (isUnlocked()) openApp();
+
+$('target-lbl').textContent = 'Quote price to hit ' + TARGET_PCT + '% GP';
 $('note').textContent = 'GP is worked out with the GST taken off. Labour costed at ' + AUD.format(BREAK_EVEN) + '/hr break-even. Goal ' + GOAL_PCT + '% GP or better.';
 
 let saved = null;
