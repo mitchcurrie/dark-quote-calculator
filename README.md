@@ -8,12 +8,12 @@ Type every price **including GST**. The calculator takes the GST off before work
 
 ```
 Quote ex GST = Quote Total ÷ 1.1
-Job cost     = (Labour Hours × $130) + (all other costs ÷ 1.1)
+Job cost     = (Labour Hours × $115) + (all other costs ÷ 1.1)
 GP $         = Quote ex GST − Job cost
 GP %         = GP $ ÷ Quote ex GST
 ```
 
-- **$130** is the break-even per labour hour (updated 12 Nov 2026). It covers wages, super, leave, vehicles, tools and overheads, so the GP shown is what the business keeps from the job.
+- **$115** is the break-even per labour hour (updated 13 Nov 2026). It covers wages, super, leave, vehicles, tools and overheads, so the GP shown is what the business keeps from the job.
 - The result matches what you're left with after paying the ATO the net GST on your BAS.
 - Green means 30% GP or better, amber means under 30%, and red means the job loses money.
 - Before a quote total is typed, the bottom line shows the **quote price needed to hit 40% GP**: Job cost ÷ 0.6 × 1.1, inc GST. Change `TARGET_PCT` in `index.html` to aim for a different GP.
@@ -42,7 +42,7 @@ It opens full screen with the DARK icon, like an app.
 Open `index.html` on GitHub, click the pencil icon, and find this block near the bottom:
 
 ```js
-const BREAK_EVEN = 130;
+const BREAK_EVEN = 115;
 const GOAL_PCT   = 30;
 const GST_PCT    = 10;
 ```
@@ -63,7 +63,7 @@ The lock keeps casual people out, such as a customer who sees the link. It isn't
 
 ## Privacy
 
-- Free GitHub accounts can only publish Pages from a **public** repository. Anyone who finds the repo or the link can see the page, including the $130 break-even rate.
+- Free GitHub accounts can only publish Pages from a **public** repository. Anyone who finds the repo or the link can see the page, including the $115 break-even rate.
 - The page tells Google not to list it, so people only find it if they're given the link.
 - Nothing typed into the calculator leaves the phone. The last numbers are kept in that phone's browser so they're still there when it reopens, until someone taps **Clear**.
 - If you need the code hidden, a paid GitHub plan can publish Pages from a private repository.
